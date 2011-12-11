@@ -70,7 +70,7 @@ void Session::onInputReceived(QString channel,QString input)
             command = parseFunc(channel, words.mid(1));
             if (!command)
             {
-                emit outputString(tr("Unable to understand command!"));
+                emit outputString(this->host(), tr("Unable to understand command!"));
                 return;
             }
         }
@@ -148,7 +148,7 @@ void Session::handleInviteMessage(IrcInviteMessage *message)
 {
     const QString sender = prettyUser(message->sender());
     QString output = colorize(tr("*** %1 invited to %3").arg(sender, message->channel()), "green");
-    emit outputString(output);
+    emit outputString(this->host(), output);
 }
 
 void Session::handleJoinMessage(IrcJoinMessage *message)
@@ -156,7 +156,7 @@ void Session::handleJoinMessage(IrcJoinMessage *message)
     const QString sender = prettyUser(message->sender());
 
     QString joinString =  colorize(tr("*** %1 joined %2").arg(sender, message->channel()),"green");
-    emit outputString(joinString);
+    emit outputString(message->channel(), joinString);
 
 }
 
@@ -167,12 +167,12 @@ void Session::handleKickMessage(IrcKickMessage *message)
     if (!message->reason().isEmpty())
     {
         QString output = colorize(tr("*** %1 kicked %2 (%3)").arg(sender, user, message->reason()), "red");
-        emit outputString(output);
+        emit outputString(message->channel(), output);
     }
     else
     {
         QString output = colorize(tr("*** %1 kicked %2").arg(sender, user), "red");
-        emit outputString(output);
+        emit outputString(message->channel(), output);
     }
 }
 
@@ -180,7 +180,7 @@ void Session::handleModeMessage(IrcModeMessage *message)
 {
     const QString sender = prettyUser(message->sender());
     QString output = colorize(tr("*** %1 sets mode %2 %3").arg(sender, message->mode(), message->argument()), "green");
-    emit outputString(output);
+    emit outputString(this->host(), output);
 }
 
 void Session::handleNickMessage(IrcNickMessage *message)
@@ -188,7 +188,7 @@ void Session::handleNickMessage(IrcNickMessage *message)
     const QString sender = prettyUser(message->sender());
     const QString nick = prettyUser(message->nick());
     QString output = colorize(tr("*** %1 changed nick to %2").arg(sender, nick), "red");
-    emit outputString(output);
+    emit outputString(this->host(), output);
 
 }
 
@@ -200,17 +200,17 @@ void Session::handleNoticeMessage(IrcNoticeMessage *message)
         const QString cmd = params.value(0);
         const QString arg = params.value(1);
         if (cmd.toUpper() == "PING")
-            emit outputString(formatPingReply(message->sender(), arg));
+            emit outputString(this->host(), formatPingReply(message->sender(), arg));
         else if (cmd.toUpper() == "TIME")
-            emit outputString(tr("! %1 time is %2").arg(prettyUser(message->sender()), QStringList(params.mid(1)).join(" ")));
+            emit outputString(this->host(), tr("! %1 time is %2").arg(prettyUser(message->sender()), QStringList(params.mid(1)).join(" ")));
         else if (cmd.toUpper() == "VERSION")
-            emit outputString(tr("! %1 version is %2").arg(prettyUser(message->sender()), QStringList(params.mid(1)).join(" ")));
+            emit outputString(this->host(), tr("! %1 version is %2").arg(prettyUser(message->sender()), QStringList(params.mid(1)).join(" ")));
     }
     else
     {
         const QString sender = prettyUser(message->sender());
         const QString msg = IrcUtil::messageToHtml(message->message());
-        emit(outputString(tr("[%1] %2").arg(sender, msg)));
+        emit(outputString(this->host(), tr("[%1] %2").arg(sender, msg)));
     }
 }
 
@@ -227,105 +227,105 @@ void Session::handleNumericMessage(IrcNumericMessage *message)
     QString msg;
 
     if (message->code() < 300)
-        emit outputString(tr("[INFO] %1").arg(IrcUtil::messageToHtml(MID_(1))));
+        emit outputString(this->host(), tr("[INFO] %1").arg(IrcUtil::messageToHtml(MID_(1))));
     if (QByteArray(Irc::toString(message->code())).startsWith("ERR_"))
-        emit outputString(tr("[ERROR] %1").arg(IrcUtil::messageToHtml(MID_(1))));
+        emit outputString(this->host(), tr("[ERROR] %1").arg(IrcUtil::messageToHtml(MID_(1))));
 
     switch (message->code())
     {
     case Irc::RPL_MOTDSTART:
     case Irc::RPL_MOTD:
-        emit outputString(tr("[MOTD] %1").arg(IrcUtil::messageToHtml(MID_(1))));
+        emit outputString(this->host(), tr("[MOTD] %1").arg(IrcUtil::messageToHtml(MID_(1))));
         break;
     case Irc::RPL_AWAY:
 
-        emit outputString(colorize(tr("*** %1 is away (%2)").arg(P_(1), MID_(2)), "green"));
+        emit outputString(this->host(), colorize(tr("*** %1 is away (%2)").arg(P_(1), MID_(2)), "green"));
         break;
     case Irc::RPL_ENDOFWHOIS:
-        emit outputString(QString());
+        emit outputString(this->host(), QString());
         break;
     case Irc::RPL_WHOISOPERATOR:
     case Irc::RPL_WHOISHELPOP: // "is available for help"
     case Irc::RPL_WHOISSPECIAL: // "is identified to services"
     case Irc::RPL_WHOISSECURE: // nick is using a secure connection
     case Irc::RPL_WHOISHOST: // nick is connecting from <...>
-        emit outputString(colorize(tr("*** %1").arg(MID_(1)), "green"));
+        emit outputString(this->host(), colorize(tr("*** %1").arg(MID_(1)), "green"));
         break;
     case Irc::RPL_WHOISUSER:
-        emit outputString(colorize(tr("*** %1 is %2@%3 (%4)")
+        emit outputString(this->host(), colorize(tr("*** %1 is %2@%3 (%4)")
                                    .arg(P_(1), P_(2), P_(3),
                                         IrcUtil::messageToHtml(MID_(5))), "green"));
         break;
     case Irc::RPL_WHOISSERVER:
-        emit outputString(colorize(tr("*** %1 is online via %2 (%3)")
+        emit outputString(this->host(), colorize(tr("*** %1 is online via %2 (%3)")
                                    .arg(P_(1), P_(2), P_(3)), "green"));
         break;
     case Irc::RPL_WHOISACCOUNT: // nick user is logged in as
-        emit outputString(colorize(tr("*** %1 %3 %2").arg(P_(1), P_(2), P_(3)), "green"));
+        emit outputString(this->host(), colorize(tr("*** %1 %3 %2").arg(P_(1), P_(2), P_(3)), "green"));
         break;
     case Irc::RPL_WHOWASUSER:
-        emit outputString(colorize(tr("*** %1 was %2@%3 %4 %5")
+        emit outputString(this->host(), colorize(tr("*** %1 was %2@%3 %4 %5")
                                    .arg(P_(1), P_(2), P_(3), P_(4), P_(5)), "green"));
         break;
     case Irc::RPL_WHOISIDLE:
         myDateTime = QDateTime::fromTime_t(P_(3).toInt());
         myTime = QTime().addSecs(P_(2).toInt());
-        emit outputString(colorize(tr("*** %1 has been online since %2 (idle for %3)")
+        emit outputString(this->host(), colorize(tr("*** %1 has been online since %2 (idle for %3)")
                                    .arg(P_(1), myDateTime.toString(), myTime.toString()), "green"));
 
         break;
     case Irc::RPL_WHOISCHANNELS:
-        emit outputString(colorize(tr("*** %1 is on channels %2").arg(P_(1), P_(2)), "green"));
+        emit outputString(this->host(), colorize(tr("*** %1 is on channels %2").arg(P_(1), P_(2)), "green"));
         break;
     case Irc::RPL_CHANNELMODEIS:
-        emit outputString(colorize(tr("*** %1 mode is %2").arg(P_(1), P_(2)), "green"));
+        emit outputString(this->host(), colorize(tr("*** %1 mode is %2").arg(P_(1), P_(2)), "green"));
         break;
     case Irc::RPL_CHANNEL_URL:
-        emit outputString(colorize(tr("*** %1 url is %2")
+        emit outputString(this->host(), colorize(tr("*** %1 url is %2")
                                    .arg(P_(1), IrcUtil::messageToHtml(P_(2))), "green"));
         break;
     case Irc::RPL_CREATIONTIME:
         myDateTime = QDateTime::fromTime_t(P_(2).toInt());
-        emit outputString(colorize(tr("*** %1 was created %2")
+        emit outputString(this->host(), colorize(tr("*** %1 was created %2")
                                    .arg(P_(1), myDateTime.toString()), "green"));
         break;
     case Irc::RPL_NOTOPIC:
-        emit outputString(colorize(tr("*** %1 has no topic set").arg(P_(1)), "green"));
+        emit outputString(P_(1), colorize(tr("*** %1 has no topic set").arg(P_(1)), "green"));
         break;
     case Irc::RPL_TOPIC:
-        emit outputString(colorize(tr("*** %1 topic is \"%2\"")
+        emit outputString(P_(1), colorize(tr("*** %1 topic is \"%2\"")
                                    .arg(P_(1), IrcUtil::messageToHtml(P_(2))), "green"));
         break;
     case Irc::RPL_TOPICWHOTIME:
         myDateTime = QDateTime::fromTime_t(P_(3).toInt());
-        emit outputString(colorize(tr("*** %1 topic was set %2 by %3")
+        emit outputString(P_(1), colorize(tr("*** %1 topic was set %2 by %3")
                                    .arg(P_(1), myDateTime.toString(), P_(2)), "green"));
         break;
     case Irc::RPL_INVITING:
-        emit outputString(colorize(tr("*** inviting %1 to %2").arg(P_(1), P_(2)), "green"));
+        emit outputString(this->host(), colorize(tr("*** inviting %1 to %2").arg(P_(1), P_(2)), "green"));
         break;
     case Irc::RPL_VERSION:
-        emit outputString(colorize(tr("*** %1 version is %2")
+        emit outputString(this-> host(), colorize(tr("*** %1 version is %2")
                                    .arg(message->sender().name(), P_(1)),"green"));
         break;
     case Irc::RPL_TIME:
-        emit outputString(colorize(tr("*** %1 time is %2").arg(P_(1), P_(2)),"green"));
+        emit outputString(this->host(), colorize(tr("*** %1 time is %2").arg(P_(1), P_(2)),"green"));
         break;
     case Irc::RPL_UNAWAY:
     case Irc::RPL_NOWAWAY:
-        emit outputString(colorize(tr("*** %1").arg(P_(1)), "green"));
+        emit outputString(this->host(), colorize(tr("*** %1").arg(P_(1)), "green"));
         break;
     case Irc::RPL_NAMREPLY:
         foreach (const QString& name, P_(3).split(" ", QString::SkipEmptyParts))
             nicknameList.append(name);
-        emit outputString(QString());
+        emit outputString(this->host(), QString());
         break;
 
     case Irc::RPL_ENDOFNAMES:
         channel = P_(1);
         msg = colorize(tr("*** %1 has %2 user(s)").arg(channel).arg(nicknameList.count()), "green");
         emit newNamesList(channel, nicknameList);
-        emit outputString(msg);
+        emit outputString(this->host(), msg);
         nicknameList.clear();
         break;
 
@@ -341,19 +341,19 @@ void Session::handlePartMessage(IrcPartMessage *message)
         QString output = colorize(tr("*** %1 left %2 (%3)")
                                   .arg(sender, message->channel(),
                                        IrcUtil::messageToHtml(message->reason())),"green");
-        emit outputString(output);
+        emit outputString(message->channel(), output);
     }
     else
     {
         QString output = colorize(tr("*** %1 left %2")
                                   .arg(sender, message->channel()),"green");
-        emit outputString(output);
+        emit outputString(message->channel(), output);
     }
 }
 
 void Session::handlePongMessage(IrcPongMessage *message)
 {
-    emit outputString(formatPingReply(message->sender(), message->argument()));
+    emit outputString(this->host(), formatPingReply(message->sender(), message->argument()));
 }
 
 void Session::handlePrivateMessage(IrcPrivateMessage *message)
@@ -361,13 +361,13 @@ void Session::handlePrivateMessage(IrcPrivateMessage *message)
     const QString sender = prettyUser(message->sender());
     const QString msg = IrcUtil::messageToHtml(message->message());
     if (message->isAction())
-        emit outputString(colorize(tr("*** %1 %2").arg(sender, msg), "purple"));
+        emit outputString(message->target(), colorize(tr("*** %1 %2").arg(sender, msg), "purple"));
     else if (message->isRequest())
-        emit outputString(colorize(tr("*** %1 requested %2")
+        emit outputString(message->target(), colorize(tr("*** %1 requested %2")
                                    .arg(sender,
                                         msg.split(" ").value(0).toLower()), "green"));
     else
-        emit outputString(tr("&lt;%1&gt; %2").arg(sender, msg));
+        emit outputString(message->target(), tr("&lt;%1&gt; %2").arg(sender, msg));
 }
 
 void Session::handleQuitMessage(IrcQuitMessage *message)
@@ -379,14 +379,14 @@ void Session::handleQuitMessage(IrcQuitMessage *message)
                                   .arg(sender,
                                        IrcUtil::messageToHtml(message->reason())), "blue");
 
-        emit outputString(output);
+        emit outputString(this->host(), output);
     }
     else
     {
         QString output = colorize(tr("*** %1 has quit")
                                   .arg(sender), "blue");
 
-        emit outputString(output);
+        emit outputString(this->host(), output);
     }
 }
 
@@ -396,13 +396,13 @@ void Session::handleTopicMessage(IrcTopicMessage *message)
     const QString topic = IrcUtil::messageToHtml(message->topic());
     QString output = colorize(tr("*** %1 sets topic \"%2\" on %3")
                               .arg(sender, topic, message->channel()), "green");
-    emit outputString(output);
+    emit outputString(message->channel(), output);
 }
 
 void Session::handleUnknownMessage(IrcMessage *message)
 {
     const QString sender = prettyUser(message->sender());
-    emit outputString(tr("? %1 %2 %3")
+    emit outputString(this->host(), tr("? %1 %2 %3")
                       .arg(sender, message->command(), message->parameters().join(" ")));
 }
 

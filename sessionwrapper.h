@@ -29,7 +29,7 @@ public:
 
 
 signals:
-    void outputString(QString output);
+    void outputString(QString channel, QString output);
     void newNamesList(QString channel, QStringList nameList);
     void newChannelList(QStringList channelList);
 

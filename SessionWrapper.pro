@@ -10,9 +10,6 @@ TARGET = SessionWrapper
 TEMPLATE = lib
 CONFIG += sharedlib
 
-DESTDIR = /lib
-DLLDESTDIR = /bin
-
 SOURCES += sessionwrapper.cpp
 
 HEADERS += sessionwrapper.h
