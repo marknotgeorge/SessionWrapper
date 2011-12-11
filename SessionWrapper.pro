@@ -30,3 +30,7 @@ else:unix: LIBS += -L$$PWD/../communi/lib/ -lCommuni
 INCLUDEPATH += $$PWD/../communi/include
 DEPENDPATH += $$PWD/../communi/include
 DEFINES += COMMUNI_SHARED
+
+OTHER_FILES += \
+    .gitignore
+
